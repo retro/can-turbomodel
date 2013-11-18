@@ -91,11 +91,11 @@ After we create the transport, we just need to list it in the findAll function:
 
     steal('can/turbomodel', 'can/turbomodel/transports/rest_transport.js', function(Model, RestTransport){
       var User =  Model.extend({
-        findAll : Model.many(new LocalTransport({prefix : 'users-'}), new RestTransport({url : 'GET /users/{id}'}),
+        findAll : Model.many(new LocalTransport({prefix : 'users-'}), new RestTransport({url : 'GET /users'}),
       })
 
       return User;
     })
 
-Now every time you call `User.findAll()` it will first try to load it from the localStorage, and if data doesn't exist it will let `RestTransport` to handle the query, and cache results of the query to the localStorage
+Now every time you call `User.findAll()` it will first try to load it from the localStorage, and if data doesn't exist it will let `RestTransport` to handle the query, and cache results of the query to the localStorage. 
 

@@ -9,8 +9,10 @@
 <script type="text/javascript">
   steal("can-turbomodel", function(Model) {
     window.Model = Model;
+    
     window.User = Model.extend({
-      findOne : 'GET /users'
+      findOne : 'GET /user/{id}',
+      id : 'username'
     }, {})
   });
 </script>

@@ -14,7 +14,8 @@ function(can, Map, List, RestTransport, FunctionTransport){
 		return _.map(transports, function(transport){
 			if(_.isString(transport)){
 				return new RestTransport({
-					url : transport
+					url : transport,
+					model : model
 				});
 			} else if(_.isFunction(transport)){
 				return new FunctionTransport({
@@ -29,6 +30,7 @@ function(can, Map, List, RestTransport, FunctionTransport){
 	var modelNum = 0,
 		ignoreHookup = /change.observe\d+/,
 		getId = function( inst ) {
+			if(!inst.__get) return;
 			// Instead of using attr, use __get for performance.
 			// Need to set reading
 			can.__reading && can.__reading(inst, inst.constructor.id)
@@ -74,7 +76,7 @@ function(can, Map, List, RestTransport, FunctionTransport){
 			can.each(['findAll', 'findOne', 'create', 'update', 'destroy'], function(fn){
 				var transportFn = fn === 'findAll' ? 'many' : 'one';
 				if(_.isString(self[fn]) || (_.isFunction(self[fn]) && !self[fn]._isTransport)){
-					self[fn] = Model[transportFn](self[fn]);
+					self[fn] = Model[transportFn].call(self, self[fn]);
 				}
 			})
 		},
@@ -130,7 +132,8 @@ function(can, Map, List, RestTransport, FunctionTransport){
 			return def;
 		},
 		destroy : function(success, error){
-			var def = this.constructor.destroy(this);
+			var def  = this.constructor.destroy(this),
+				self = this;
 
 			def.then(function(){
 				self.proxy('destroyed');
@@ -190,6 +193,7 @@ function(can, Map, List, RestTransport, FunctionTransport){
 	can.each(['one', 'many'], function(type){
 		Model[type] = function(){
 			var transports = getTransports(arguments, this), 
+				self       = this,
 				store, transportFn;
 
 			store = new Model.Store({
@@ -199,6 +203,7 @@ function(can, Map, List, RestTransport, FunctionTransport){
 			})
 
 			transportFn = function(params, success, error){
+				params = _.isFunction(params.serialize) ? params.serialize() : params;
 				return store.req(params, success, error);
 			}
 			transportFn._isTransport = true;
@@ -217,7 +222,6 @@ function(can, Map, List, RestTransport, FunctionTransport){
 				self              = this,
 				transportIndex    = -1;
 
-			params = _.isFunction(params.serialize) ? params.serialize() : params;
 
 			var callTransport = function(){
 				transportIndex++;
@@ -275,7 +279,6 @@ function(can, Map, List, RestTransport, FunctionTransport){
 			return model;
 		}
 	})
-
 	
 	can.TurboModel = Model;
 

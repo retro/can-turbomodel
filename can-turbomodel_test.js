@@ -781,6 +781,9 @@ test("store instance update removed fields", function(){
 /**/
 
 test("templated destroy", function(){
+	can.fixture.on = true;
+
+
 	var MyModel = can.TurboModel.extend({
 		destroy : "/destroyplace/{id}"
 	},{});
@@ -862,79 +865,6 @@ test("extended templated destroy", function(){
 
 });
 
-test("overwrite makeFindAll", function(){
-	
-	var store = {};
-	
-	var LocalModel = can.TurboModel.extend({
-		makeFindOne : function(findOne){
-			return function(params, success, error){
-				var def = new Q.defer(),
-					data = store[params.id];
-				def.then(success, error)
-				// make the ajax request right away
-				var findOneDeferred = findOne(params);
-				
-				if(data){
-					var instance=  this.model(data);
-					findOneDeferred.then(function(data){
-						instance.updated(data)
-					}, function(){
-						can.trigger(instance,"error", data)
-					});
-					def.resolve(instance)
-				} else {
-					findOneDeferred.then(can.proxy(function(data){
-						var instance=  this.model(data);
-						store[instance[this.id]] = data;
-						def.resolve(instance)
-					}, this), function(data){
-						def.reject(data)
-					})
-				}
-				return def;
-			}
-		}
-	},{
-		updated : function(attrs){
-			can.TurboModel.prototype.updated.apply(this, arguments);
-			store[this[this.constructor.id]] = this.serialize();
-		}
-	});
-	
-	
-	can.fixture("/food/{id}", function(settings){
-		
-		return count == 0 ? {
-			id: settings.data.id,
-			name : "hot dog"
-		} : {
-			id: settings.data.id,
-			name : "ice water"
-		}
-	})
-	var Food = LocalModel({
-		findOne : "/food/{id}"
-	},{});
-	stop();
-	var count = 0;
-	Food.findOne({id: 1}, function(food){
-		count = 1;
-		ok(true, "empty findOne called back")
-		food.bind("name", function(){
-			ok(true, "name changed");
-			equal(count, 2, "after last find one")
-			equal(this.name, "ice water");
-			start();
-		})
-		
-		Food.findOne({id: 1}, function(food2){
-			count = 2;
-			ok(food2 === food, "same instances")
-			equal(food2.name, "hot dog")
-		});
-	});
-});
 
 test("inheriting unique model names", function(){
 	var Foo = can.TurboModel.extend({});
